@@ -1,0 +1,6 @@
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <preference for="Freento\AuditOverview\Api\MagentoInterface" type="Freento\AuditOverview\Model\Magento"/>
+    <preference for="Freento\AuditOverview\Api\PhpInterface" type="Freento\AuditOverview\Model\Php"/>
+    <preference for="Freento\AuditOverview\Api\ServerEnvironmentInterface" type="Freento\AuditOverview\Model\ServerEnvironment"/>
+</config>

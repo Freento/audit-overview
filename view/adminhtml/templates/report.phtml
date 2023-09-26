@@ -1,0 +1,306 @@
+<?php
+
+/** @var \Freento\AuditOverview\Block\Adminhtml\Report $block */
+/** @var \Freento\AuditOverview\Api\MagentoInterface $magento */
+/** @var \Freento\AuditOverview\Api\PhpInterface $php */
+/** @var \Freento\AuditOverview\Api\ServerEnvironmentInterface $serverEnv */
+
+/** @var Magento\Framework\Escaper $escaper */
+
+use Freento\AuditOverview\Block\Adminhtml\Report;
+
+$magento = $block->getMagento();
+$php = $block->getPhp();
+$serverEnv = $block->getServerEnvironment();
+?>
+<div class="freento-auditoverview-report-grid report-data">
+    <div data-mage-init='{
+        "accordion":{
+            "collapsible": true,
+            "openedState": "active",
+            "multipleCollapsible": true
+        }}'>
+        <div data-role="collapsible" class="admin__collapsible-block-wrapper admin__fieldset-wrapper-content">
+            <div data-role="trigger">
+                <div class="admin__collapsible-title">
+                    <span><?= $escaper->escapeHtml(__('Server Infrastructure')) ?></span>
+                </div>
+            </div>
+            <div data-role="content" class="admin__fieldset">
+                <table class="data-grid infrastructure">
+                    <tr>
+                        <td><?= $escaper->escapeHtml(__('Magento version')) ?></td>
+                        <td>
+                            <div class="data-grid-cell-content">
+                                <?= $escaper->escapeHtml($magento->getVersion()) ?>
+                            </div>
+                        </td>
+                        <td>
+                            <?php $isMagentoOutdated = $block->isMagentoOutdated(); ?>
+                            <?php if ($isMagentoOutdated): ?>
+                                <div class="data-grid-cell-content message message-warning">
+                                    <?= $escaper->escapeHtml(
+                                        __(
+                                            'Your Magento version is outdated. Please check if your version is'
+                                            . ' <a href="%link">supported</a> and update Magento.',
+                                            ['link' => 'https://experienceleague.adobe.com/docs/commerce-operations/'
+                                                . 'release/planning/lifecycle-policy.html']
+                                        ),
+                                        ['a']
+                                    ) ?>
+                                </div>
+                            <?php elseif ($isMagentoOutdated === null): ?>
+                                <div class="data-grid-cell-content message message-warning">
+                                    <?= $escaper->escapeHtml(
+                                        __(
+                                            'Couldn\'t find package info for Magento edition: %edition. Couldn\'t'
+                                            . ' check if your Magento version is up-to-date.',
+                                            ['edition' => $block->getMagento()->getEdition()]
+                                        )
+                                    ) ?>
+                                </div>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <tr class="_odd-row">
+                        <td><?= $escaper->escapeHtml(__('Deploy mode')) ?></td>
+                        <td>
+                            <div class="data-grid-cell-content">
+                                <?= $escaper->escapeHtml($mode = $magento->getDeployMode()) ?>
+                            </div>
+                        </td>
+                        <td>
+                            <?php if ($mode !== \Magento\Framework\App\State::MODE_PRODUCTION): ?>
+                                <div class="data-grid-cell-content message message-warning">
+                                    <?= $escaper->escapeHtml(
+                                        __(
+                                            'If Magento is installed on production server it is recommended to'
+                                            . ' switch to \'production\' mode'
+                                        )
+                                    ) ?>
+                                </div>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><?= $escaper->escapeHtml(__('PHP version')) ?></td>
+                        <td>
+                            <div class="data-grid-cell-content"><?= $escaper->escapeHtml($php->getVersion()) ?></div>
+                        </td>
+                        <td>
+                            <?php if ($block->isPhpOutdated()): ?>
+                                <div class="data-grid-cell-content message message-warning">
+                                    <?= $escaper->escapeHtml(
+                                        __(
+                                            'Your php version is no longer supported and its usage may be '
+                                            . 'insecure. Please see list of <a href="%supported">supported</a> and '
+                                            . '<a href="%unsupported">unsupported</a> versions for further details.',
+                                            [
+                                                'supported' => 'https://www.php.net/supported-versions.php',
+                                                'unsupported' => 'https://www.php.net/eol.php'
+                                            ]
+                                        ),
+                                        ['a']
+                                    ) ?>
+                                </div>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <tr class="_odd-row">
+                        <td><?= $escaper->escapeHtml(__('MySQL version')) ?></td>
+                        <td>
+                            <div class="data-grid-cell-content">
+                                <?= $escaper->escapeHtml($serverEnv->getMysqlVersion()) ?>
+                            </div>
+                        </td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td><?= $escaper->escapeHtml(__('ElasticSearch version')) ?></td>
+                        <td>
+                            <div class="data-grid-cell-content">
+                                <?= $escaper->escapeHtml($serverEnv->getElasticVersion()) ?>
+                            </div>
+                        </td>
+                        <td></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div data-role="collapsible" class="admin__collapsible-block-wrapper admin__fieldset-wrapper-content">
+            <div data-role="trigger">
+                <div class="admin__collapsible-title">
+                    <span><?= $escaper->escapeHtml(__('Magento Cache Status')) ?></span>
+                </div>
+            </div>
+            <div data-role="content" class="admin__fieldset">
+                <table class="data-grid">
+                    <tr>
+                        <th class="data-grid-th"><?= $escaper->escapeHtml(__('Cache type')) ?></th>
+                        <th class="data-grid-th"><?= $escaper->escapeHtml(__('Description')) ?></th>
+                        <th class="data-grid-th"><?= $escaper->escapeHtml(__('Status')) ?></th>
+                    </tr>
+                    <?php $hasDisabledCaches = false; ?>
+                    <?php $odd = false;
+                    foreach ($magento->getCacheInfo() as $cacheType): ?>
+                        <tr <?= $odd ? 'class="_odd-row"' : '' ?>>
+                            <td>
+                                <div class="data-grid-cell-content">
+                                    <?= $escaper->escapeHtml($cacheType['label']) ?>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="data-grid-cell-content">
+                                    <?= $escaper->escapeHtml($cacheType['description']) ?>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="data-grid-cell-content
+                                <?= $escaper->escapeHtmlAttr(
+                                    $block->getCacheStatusCssClass($cacheType['status'])
+                                ) ?>">
+                                    <?= $escaper->escapeHtml($block->getCacheStatusCaption($cacheType['status'])) ?>
+                                    <?php if ($cacheType['status'] === 0): ?>
+                                        <?php $hasDisabledCaches = true; ?>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php $odd = !$odd;
+                    endforeach; ?>
+                </table>
+                <?php if ($hasDisabledCaches): ?>
+                    <div class="message message-warning cache-warning">
+                        <?= $escaper->escapeHtml(
+                            __(
+                                'Please enable disabled cache types, otherwise it may slow down your store’s '
+                                . 'performance.'
+                            )
+                        ) ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        <div data-role="collapsible" class="admin__collapsible-block-wrapper admin__fieldset-wrapper-content">
+            <div data-role="trigger">
+                <div class="admin__collapsible-title">
+                    <span><?= $escaper->escapeHtml(__('Magento Index Status')) ?></span>
+                </div>
+            </div>
+            <div data-role="content" class="admin__fieldset">
+                <table class="data-grid">
+                    <tr>
+                        <th class="data-grid-th"><?= $escaper->escapeHtml(__('Indexer')) ?></th>
+                        <th class="data-grid-th"><?= $escaper->escapeHtml(__('Mode')) ?></th>
+                        <th class="data-grid-th"><?= $escaper->escapeHtml(__('Status')) ?></th>
+                        <th class="data-grid-th"><?= $escaper->escapeHtml(__('Schedule status')) ?></th>
+                        <th class="data-grid-th"><?= $escaper->escapeHtml(__('Updated')) ?></th>
+                        <th class="data-grid-th"><?= $escaper->escapeHtml(__('Notes')) ?></th>
+                    </tr>
+                    <?php $odd = false;
+                    foreach ($magento->getReindexStatus() as $indexer): ?>
+                        <tr <?= $odd ? 'class="_odd-row"' : '' ?>>
+                            <td>
+                                <div class="data-grid-cell-content"><?= $escaper->escapeHtml($indexer['title']) ?></div>
+                            </td>
+                            <td>
+                                <div
+                                    class="data-grid-cell-content
+                                    <?= $escaper->escapeHtmlAttr(
+                                        $block->getReindexModeCssClass($indexer['update_on']->getText())
+                                    ) ?>">
+                                    <?= $escaper->escapeHtml(
+                                        $block->getReindexModeCaption($indexer['update_on']->getText())
+                                    ) ?>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="data-grid-cell-content
+                                <?= $escaper->escapeHtmlAttr(
+                                    $block->getReindexStatusCssClass($indexer['status']->getText())
+                                ) ?>">
+                                    <?= $escaper->escapeHtml($indexer['status']) ?>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="data-grid-cell-content
+                                <?php if (!empty($indexer['schedule_status'])) {
+                                    echo $escaper->escapeHtmlAttr(
+                                        $block->getScheduleStatusCssClass($indexer['schedule_status'])
+                                    );
+                                }
+                                ?>">
+                                    <?= $escaper->escapeHtml($indexer['schedule_status']) ?>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="data-grid-cell-content">
+                                    <?= $escaper->escapeHtml($indexer['updated']) ?>
+                                </div>
+                            </td>
+                            <td>
+                                <?php if ($indexer['id'] == 'customer_grid' && $indexer['update_on'] == 'Schedule'): ?>
+                                    <div class="data-grid-cell-content message message-warning">
+                                        <?= $escaper->escapeHtml(
+                                            __('It is recommended to update customer grid only on save')
+                                        ) ?>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if ($indexer['update_on'] == 'Schedule'
+                                    && $block->isIndexOutdated($indexer['updated'])
+                                ): ?>
+                                    <div class="data-grid-cell-content message message-warning">
+                                        <?= $escaper->escapeHtml(
+                                            __(
+                                                'Index wasn\'t updated during last %time hours. Please update it.',
+                                                ['time' => Report::INDEX_TTL_IN_HOURS]
+                                            )
+                                        ) ?>
+                                    </div>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <?php $odd = !$odd;
+                    endforeach; ?>
+                </table>
+            </div>
+        </div>
+        <div data-role="collapsible" class="admin__collapsible-block-wrapper admin__fieldset-wrapper-content">
+            <div data-role="trigger">
+                <div class="admin__collapsible-title">
+                    <span><?= $escaper->escapeHtml(__('Security')) ?></span>
+                </div>
+            </div>
+            <div data-role="content" class="admin__fieldset">
+                <table class="data-grid security">
+                    <tr>
+                        <td><?= $escaper->escapeHtml(__('Magento admin URL')) ?></td>
+                        <?php $isFrontNameInsecure = $block->isFrontNameInsecure(); ?>
+                        <?php if ($isFrontNameInsecure): ?>
+                            <td>
+                                <div class="data-grid-cell-content">
+                                    <?= $escaper->escapeHtml($magento->getFrontName()) ?>
+                                </div>
+                            </td>
+                        <?php endif; ?>
+                        <td>
+                            <?php if ($isFrontNameInsecure): ?>
+                                <div class="data-grid-cell-content message message-warning">
+                                    <?= $escaper->escapeHtml(
+                                        __(
+                                            'It is insecure to use default admin url. Consider changing it.'
+                                        )
+                                    ) ?>
+                                </div>
+                            <?php else: ?>
+                                <div class="data-grid-cell-content message message-info">
+                                    <?= $escaper->escapeHtml(__('Your admin url is secure')) ?>
+                                </div>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,14 @@
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <virtualType name="Freento\AuditReport\Model\ReportList">
+        <arguments>
+            <argument name="data" xsi:type="array">
+                <item name="overview" xsi:type="array">
+                    <item name="order" xsi:type="number">20</item>
+                    <item name="class" xsi:type="string">Freento\AuditOverview\Block\Adminhtml\Report</item>
+                    <item name="label" xsi:type="string">Overview</item>
+                </item>
+            </argument>
+        </arguments>
+    </virtualType>
+</config>
